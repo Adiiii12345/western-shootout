@@ -1,17 +1,14 @@
-# main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import DuelRequest, DuelResponse
 from duel_engine import DuelEngine
 from fairness import FairnessManager
-import secrets
 
 app = FastAPI(title="Western Shootout API")
 
-# CORS engedélyezése a frontend felé
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Élesben korlátozd a frontend URL-jére!
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -19,17 +16,29 @@ app.add_middleware(
 engine = DuelEngine()
 fm = FairnessManager()
 
-# Mock adatbázis a Seed-eknek (Élesben Redis vagy SQL ajánlott)
-# Itt generálunk egy kezdeti szerver seedet
+# Kezdő állapot
 current_server_seed = fm.generate_server_seed()
+# Példa egyenleg (élesben adatbázisból jönne)
+user_balance = 1000.0
+
+@app.get("/status")
+async def get_status():
+    """A frontend inicializálásakor hívódik meg."""
+    return {
+        "serverSeedHash": fm.hash_server_seed(current_server_seed),
+        "status": "ready"
+    }
 
 @app.post("/shoot", response_model=DuelResponse)
 async def handle_shoot(request: DuelRequest):
-    global current_server_seed
+    global current_server_seed, user_balance
     
+    # 1. Alapvető ellenőrzés
+    if user_balance < request.amount:
+        raise HTTPException(status_code=400, detail="Nincs elég egyenleg!")
+
     try:
-        # 1. A párbaj szimulálása a beküldött adatokkal
-        # A request.mode tartalmazza a mágnest, páncélt és a célpontot
+        # 2. Szimuláció futtatása
         duel_result = engine.simulate_duel(
             server_seed=current_server_seed,
             client_seed=request.clientSeed,
@@ -37,34 +46,24 @@ async def handle_shoot(request: DuelRequest):
             bet_config=request.mode.dict()
         )
 
-        # 2. Hash generálása a transzparenciához
-        # Ezt látja a felhasználó a UI-on
-        s_seed_hash = fm.hash_server_seed(current_server_seed)
+        # 3. Egyenleg módosítása a szerveren
+        # Levonjuk a tétet, hozzáadjuk a nyereményt
+        payout = request.baseBet * duel_result["payoutMultiplier"]
+        user_balance = user_balance - request.amount + payout
 
-        # 3. Válasz összeállítása a frontend által elvárt formátumban
-        response = {
+        return {
             "round": {
                 "duelSteps": duel_result["duelSteps"],
                 "winner": duel_result["winner"],
                 "payoutMultiplier": duel_result["payoutMultiplier"]
             },
-            "serverSeedHash": s_seed_hash,
+            "serverSeedHash": fm.hash_server_seed(current_server_seed),
             "newNonce": duel_result["endNonce"],
             "balance": {
-                "amount": 0 # Itt vonhatod le/adhatod hozzá a pénzt az egyenlegkezelődben
+                "amount": round(user_balance, 2)
             }
         }
 
-        # MEGJEGYZÉS: Provably Fair rendszereknél a Server Seed-et csak 
-        # a ciklus végén (vagy kérésre) cseréljük le és fedjük fel a régit.
-        # Ebben a demóban minden lövésnél megtartjuk a folytonosságot a Nonce-al.
-        
-        return response
-
     except Exception as e:
-        print(f"Hiba a szimuláció során: {e}")
-        raise HTTPException(status_code=500, detail="Belső szerverhiba a párbaj során.")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        print(f"Backend hiba: {e}")
+        raise HTTPException(status_code=500, detail="Hiba a párbaj generálása közben.")

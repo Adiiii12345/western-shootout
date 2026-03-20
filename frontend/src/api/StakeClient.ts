@@ -5,9 +5,16 @@ export class StakeClient {
     private readonly BASE_URL = 'http://localhost:8000';
 
     public async initialize() {
-        // Inicializálásnál lekérhetjük az alapértelmezett serverSeedHash-t
-        // Mivel a backend main.py-ban a hash csak a /shoot után jön vissza alapból, 
-        // egy üres kéréssel vagy egy dedikált /status végponttal szinkronizálhatunk.
+        // Inicializálásnál lekérhetjük az alapértelmezett állapotot
+        try {
+            const response = await fetch(`${this.BASE_URL}/status`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.serverSeedHash) serverSeedHash.set(data.serverSeedHash);
+            }
+        } catch (e) {
+            console.warn("Backend nem elérhető inicializáláskor, default értékek használata.");
+        }
         return { status: "ready" };
     }
 
@@ -49,9 +56,8 @@ export class StakeClient {
                 currentNonce.set(data.newNonce);
             }
 
-            // Az egyenleget a GameEngine.ts handleShootResult-ja fogja frissíteni a data.balance alapján,
-            // de itt is elvégezhetjük a biztonság kedvéért, ha a backend küld adatot.
-            if (data.balance?.amount !== undefined && data.balance.amount > 0) {
+            // Ha a backend küld balance-ot, frissítjük
+            if (data.balance?.amount !== undefined) {
                 currentBalance.set(data.balance.amount);
             }
 
