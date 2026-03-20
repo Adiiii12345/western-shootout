@@ -1,0 +1,33 @@
+{
+  "frames": {
+    "idle_0": {
+      "frame": { "x": 0, "y": 0, "w": 48, "h": 48 },
+      "sourceSize": { "w": 48, "h": 48 }
+    },
+    "idle_1": {
+      "frame": { "x": 48, "y": 0, "w": 48, "h": 48 },
+      "sourceSize": { "w": 48, "h": 48 }
+    },
+    "idle_2": {
+      "frame": { "x": 96, "y": 0, "w": 48, "h": 48 },
+      "sourceSize": { "w": 48, "h": 48 }
+    },
+    "idle_3": {
+      "frame": { "x": 144, "y": 0, "w": 48, "h": 48 },
+      "sourceSize": { "w": 48, "h": 48 }
+    },
+    "idle_4": {
+      "frame": { "x": 192, "y": 0, "w": 48, "h": 48 },
+      "sourceSize": { "w": 48, "h": 48 }
+    }
+  },
+  "meta": {
+    "image": "hero_idle.png",
+    "format": "RGBA8888",
+    "size": { "w": 240, "h": 48 },
+    "scale": "1"
+  },
+  "animations": {
+    "idle": ["idle_0", "idle_1", "idle_2", "idle_3", "idle_4"]
+  }
+}

@@ -1,0 +1,33 @@
+{
+    "frames": {
+      "death_0": {
+        "frame": { "x": 0, "y": 0, "w": 48, "h": 48 },
+        "sourceSize": { "w": 48, "h": 48 }
+      },
+      "death_1": {
+        "frame": { "x": 48, "y": 0, "w": 48, "h": 48 },
+        "sourceSize": { "w": 48, "h": 48 }
+      },
+      "death_2": {
+        "frame": { "x": 96, "y": 0, "w": 48, "h": 48 },
+        "sourceSize": { "w": 48, "h": 48 }
+      },
+      "death_3": {
+        "frame": { "x": 144, "y": 0, "w": 48, "h": 48 },
+        "sourceSize": { "w": 48, "h": 48 }
+      },
+      "death_4": {
+        "frame": { "x": 192, "y": 0, "w": 48, "h": 48 },
+        "sourceSize": { "w": 48, "h": 48 }
+      }
+    },
+    "meta": {
+      "image": "hero_death.png",
+      "format": "RGBA8888",
+      "size": { "w": 240, "h": 48 },
+      "scale": "1"
+    },
+    "animations": {
+      "death": ["death_0", "death_1", "death_2", "death_3", "death_4"]
+    }
+  }
