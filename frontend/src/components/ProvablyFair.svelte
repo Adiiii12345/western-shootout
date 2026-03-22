@@ -1,89 +1,125 @@
 <script lang="ts">
-    import { serverSeedHash, clientSeed, currentNonce } from '../store/GameStore';
+    import { serverSeedHash, clientSeed, currentNonce, gameState, previousServerSeed } from '../store/GameStore';
+    import { stakeClient } from '../api/StakeClient';
+    import PFVerifier from './PFVerifier.svelte';
     
     let isOpen = false;
+    let copiedField: string | null = null;
+    let isRotating = false;
+    let showVerifier = false;
+
+    async function copyToClipboard(text: string, field: string) {
+        try {
+            await navigator.clipboard.writeText(text);
+            copiedField = field;
+            setTimeout(() => copiedField = null, 2000);
+        } catch (err) {
+            console.error('Hiba a másolás során:', err);
+        }
+    }
+
+    function randomizeClientSeed() {
+        if ($gameState !== 'IDLE') return;
+        const randomHash = Math.random().toString(36).substring(2, 15);
+        clientSeed.set(randomHash);
+    }
+
+    async function handleRotate() {
+        if ($gameState !== 'IDLE' || isRotating) return;
+        isRotating = true;
+        try {
+            await stakeClient.rotateSeed();
+        } finally {
+            isRotating = false;
+        }
+    }
 </script>
 
 <div class="pf-container">
-    <button class="pf-toggle" on:click={() => isOpen = !isOpen}>
+    <button 
+        class="pf-toggle" 
+        on:click={() => isOpen = !isOpen}
+        aria-expanded={isOpen}
+    >
         {isOpen ? '✖ Bezár' : '🛡 Provably Fair'}
     </button>
 
     {#if isOpen}
         <div class="pf-modal">
-            <h3>Forduló Ellenőrzése</h3>
+            <div class="pf-header">
+                <h3>Forduló Ellenőrzése</h3>
+                <span class="status-badge">Aktív</span>
+            </div>
             
             <div class="field">
-                <label for="serverSeed">Server Seed Hash:</label>
-                <input id="serverSeed" type="text" readonly value={$serverSeedHash} />
+                <label for="serverSeedHashInput">Aktív Server Seed Hash (Következő):</label>
+                <div class="input-group">
+                    <input id="serverSeedHashInput" type="text" readonly value={$serverSeedHash} />
+                    <button class="icon-btn" on:click={() => copyToClipboard($serverSeedHash, 'server')}>
+                        {copiedField === 'server' ? '✓' : '📋'}
+                    </button>
+                </div>
             </div>
 
             <div class="field">
-                <label for="clientSeed">Client Seed:</label>
-                <input id="clientSeed" type="text" bind:value={$clientSeed} />
+                <label for="clientSeedInput">Saját Kulcs (Client Seed):</label>
+                <div class="input-group">
+                    <input 
+                        id="clientSeedInput" 
+                        type="text" 
+                        bind:value={$clientSeed} 
+                        disabled={$gameState !== 'IDLE'} 
+                    />
+                    <button 
+                        class="icon-btn" 
+                        on:click={randomizeClientSeed} 
+                        disabled={$gameState !== 'IDLE'} 
+                        title="Véletlenszerű kulcs"
+                    >
+                        🎲
+                    </button>
+                </div>
             </div>
 
             <div class="field">
-                <label for="nonce">Nonce:</label>
-                <input id="nonce" type="number" readonly value={$currentNonce} />
+                <label for="nonceInput">Nonce (Fogadások száma):</label>
+                <input id="nonceInput" type="number" readonly value={$currentNonce} />
             </div>
 
-            <p class="info">Ezek az adatok garantálják, hogy az eredmény már a lövés előtt eldőlt, és nem módosítható.</p>
+            <button 
+                class="rotate-btn" 
+                on:click={handleRotate} 
+                disabled={$gameState !== 'IDLE' || isRotating}
+            >
+                {isRotating ? 'Váltás...' : 'Új Seed Generálása (Rotáció)'}
+            </button>
+
+            {#if $previousServerSeed}
+                <div class="revealed-section">
+                    <label for="prevServerSeedInput">Előző Server Seed (Felfedve):</label>
+                    <div class="input-group">
+                        <input id="prevServerSeedInput" type="text" readonly value={$previousServerSeed} class="revealed" />
+                        <button class="icon-btn" on:click={() => copyToClipboard($previousServerSeed || '', 'prev')}>
+                            {copiedField === 'prev' ? '✓' : '📋'}
+                        </button>
+                    </div>
+                    <p class="verification-hint">Ezzel a kulccsal ellenőrizheted az előző játékaidat.</p>
+                </div>
+            {/if}
+
+            <button class="toggle-verifier-btn" on:click={() => showVerifier = !showVerifier}>
+                {showVerifier ? 'Ellenőrző elrejtése' : 'Manuális Ellenőrzés (Verifier) megnyitása'}
+            </button>
+
+            {#if showVerifier}
+                <PFVerifier />
+            {/if}
+
+            <div class="pf-footer">
+                <p class="info">
+                    A biztonsági Hash SHA-256, míg a generált eredmény a <code>Server Seed</code>, <code>Client Seed</code> és <code>Nonce</code> <strong>HMAC-SHA512</strong> kódolásából származik.
+                </p>
+            </div>
         </div>
     {/if}
 </div>
-
-<style>
-    .pf-container {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        z-index: 200;
-    }
-
-    .pf-toggle {
-        background: rgba(0, 0, 0, 0.6);
-        color: #aaa;
-        border: 1px solid #444;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8rem;
-    }
-
-    .pf-toggle:hover {
-        color: #fff;
-        border-color: #666;
-    }
-
-    .pf-modal {
-        position: absolute;
-        top: 45px;
-        right: 0;
-        background: #1a1a1a;
-        border: 1px solid #444;
-        padding: 20px;
-        border-radius: 8px;
-        width: 300px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    }
-
-    h3 { color: #f1c40f; margin-top: 0; font-size: 1rem; }
-
-    .field { margin-bottom: 12px; }
-
-    label { display: block; font-size: 0.7rem; color: #888; margin-bottom: 4px; }
-
-    input {
-        width: 100%;
-        background: #000;
-        border: 1px solid #333;
-        color: #2ecc71;
-        padding: 8px;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 0.8rem;
-    }
-
-    .info { font-size: 0.65rem; color: #666; line-height: 1.4; margin-bottom: 0; }
-</style>

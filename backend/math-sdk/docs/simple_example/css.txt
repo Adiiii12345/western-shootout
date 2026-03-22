@@ -1,0 +1,153 @@
+/* ==========================================================================
+   GLOBAL RESET & FONTS
+   ========================================================================== */
+:root {
+    --bg-dark: #0a0a0a;
+    --bg-panel: #161616;
+    --bg-game: #0f0f0f;
+    --bg-box: #000;
+    --bg-input: #1a1a1a;
+    
+    --border-color: #2a2a2a;
+    --border-light: #333;
+    
+    --text-main: white;
+    --text-muted: #888;
+    --text-dim: #aaa;
+    
+    --color-primary: #f1c40f;
+    --color-success: #2ecc71;
+    --color-danger: #e74c3c;
+    --color-action: #e67e22;
+    --color-action-hover: #d35400;
+    --color-player: #3498db;
+    
+    --sidebar-width: 320px;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-main);
+}
+
+main {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   APP LAYOUT
+   ========================================================================== */
+.game-layout {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* --- Sidebar --- */
+.sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-color);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+}
+
+.history-panel {
+    flex-grow: 1;
+    overflow-y: auto;
+    border-top: 1px solid var(--border-color);
+}
+
+/* --- Game Container --- */
+.game-container {
+    width: calc(100vw - var(--sidebar-width));
+    height: 100vh;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg-game);
+    padding: 20px;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   GAMECANVAS & COMPONENTS
+   ========================================================================== */
+.canvas-container canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- Revolver UI --- */
+.revolver-wrapper {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    z-index: 5;
+}
+
+.revolver-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.8) 100%);
+    border-radius: 50%;
+    width: 140px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+}
+
+.cylinder {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: #2c2c2c;
+    border-radius: 50%;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- Bet Panel Buttons --- */
+.shoot-btn {
+    background: var(--color-action);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.shoot-btn:hover:not(:disabled) {
+    background: var(--color-action-hover);
+}

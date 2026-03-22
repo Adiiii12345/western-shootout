@@ -1,0 +1,73 @@
+# --- OS / IDE ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# --- Python / Backend ---
+**/__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+venv/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Math-SDK Specifikus ---
+# Az editable install (pip install --src) ide kényszerített mappája
+backend/math-sdk/src/
+
+# Generált matematikai adatok
+backend/math-sdk/games/western-shootout/library/books/
+backend/math-sdk/games/western-shootout/library/forces/
+backend/math-sdk/games/western-shootout/library/lookup_tables/
+backend/math-sdk/games/western-shootout/library/publish_files/
+backend/math-sdk/games/western-shootout/library/optimization_files/
+backend/math-sdk/games/western-shootout/library/configs/*.verification.json
+
+# --- Frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.svelte-kit/
+frontend/.svelte2tsx-language-server-files/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Root node_modules (concurrently, rimraf)
+node_modules/
+
+__pycache__
+*/.pyc
+*.prof
+*/setup.txt
+*/setup.toml
+*.egg-info/
+*/SOURCES.txt
+
+**/library/**
+**/configs/*
+**/forces/*
+**/books/*
+**/lookup_tables/*
+**/books_compressed/*
+**temp_multi_threaded_files
+
+
+**/target/*
+**/debug/*
+**release/*
+**/optimization_files/**
+
+/env
+*.env
+*.DS_Store
+*.toml
+
+**/site/*
+

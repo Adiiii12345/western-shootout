@@ -1,0 +1,22 @@
+{
+  "name": "western-shootout-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "kill-ports": "kill-port 8000 5173 5174",
+    "clean": "npm run kill-ports && npx rimraf --glob \"backend/**/__pycache__\" \"backend/**/*.pyc\" \"frontend/.vite\" \"frontend/dist\" \"backend/math-sdk/games/western_shootout/library/**\" \"backend/math-sdk/games/western_shootout_95\" \"backend/math-sdk/games/0_001_9536\"",
+    "install-all": "npm i && pip install -r backend/math-sdk/requirements.txt && pip install -e backend/math-sdk && npm i --prefix frontend",
+    "generate-rgs": "python backend/math-sdk/run.py",
+    "run-backend": "python backend/api/server.py",
+    "run-frontend": "npm run dev --prefix frontend",
+    "explore": "python backend/math-sdk/utils/explorer.py",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"yellow,blue\" \"npm run run-backend\" \"npm run run-frontend\"",
+    "setup": "npm run install-all && npm run generate-rgs && npm run dev",
+    "setup-fresh": "npm run clean && npm run setup"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "kill-port": "^2.0.1",
+    "rimraf": "^5.0.5"
+  }
+}

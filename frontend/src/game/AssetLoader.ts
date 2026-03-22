@@ -15,9 +15,13 @@ class AssetLoader {
             ];
 
             for (const item of manifest) {
-                const sheet = await PIXI.Assets.load(item.src);
-                await sheet.parse();
-                this.sheets[item.alias] = sheet;
+                try {
+                    PIXI.Assets.add({ alias: item.alias, src: item.src });
+                    const sheet = await PIXI.Assets.load(item.alias);
+                    this.sheets[item.alias] = sheet;
+                } catch (e) {
+                    console.warn(`AssetLoader: Could not load ${item.src}. Using fallbacks.`);
+                }
             }
 
             this.assetsLoaded = true;
@@ -38,7 +42,7 @@ class AssetLoader {
         const sheetAlias = mapping[animation];
         const sheet = this.sheets[sheetAlias];
 
-        if (!sheet) return [];
+        if (!sheet || !sheet.animations) return [];
 
         return sheet.animations[animation] || [];
     }
