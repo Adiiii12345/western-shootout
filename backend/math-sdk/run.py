@@ -1,73 +1,77 @@
-import sys
 import os
+import sys
+import json
 from pathlib import Path
-import functools
 
-# Kényszerítjük a gyökérkönyvtárat a python path-ba, 
-# hogy a 'src' és a 'games' mappák modulként látszódjanak.
-math_sdk_root = Path(__file__).resolve().parent
-if str(math_sdk_root) not in sys.path:
-    sys.path.insert(0, str(math_sdk_root))
+try:
+    import zstandard as zstd
+except ImportError:
+    print("Kérlek telepítsd a zstandard csomagot: pip install zstandard")
+    sys.exit(1)
 
-# Abszolút importok a math-sdk gyökerétől indítva
-from games.western_shootout.gamestate import GameState
-from games.western_shootout.game_config import GameConfig
-from src.state.run_sims import create_books
-from src.write_data.write_configs import generate_configs
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CURRENT_DIR))
 
-def apply_sdk_patches():
-    """
-    SDK Patch: Biztosítja, hogy a get_distribution_moments 
-    ne dobjon TypeError-t hiányzó argumentumok miatt.
-    """
-    try:
-        from src.write_data import write_configs as wc
-        original_get_moments = wc.get_distribution_moments
+game_id = sys.argv[1] if len(sys.argv) > 1 else "western_shootout"
+stake_game_id = f"stake_{game_id}_95"
+
+try:
+    gamestate_module = __import__(f"games.{game_id}.gamestate", fromlist=["GameState"])
+    config_module = __import__(f"games.{game_id}.game_config", fromlist=["GameConfig"])
+    GameState = gamestate_module.GameState
+    GameConfig = config_module.GameConfig
+except ImportError as e:
+    print(f"Hiba a játék fájljainak betöltésekor: {e}")
+    sys.exit(1)
+
+def generate_math_files():
+    config = GameConfig(stake_game_id)
+    gamestate = GameState(config)
+    
+    output_dir = CURRENT_DIR / "games" / stake_game_id / "library" / "publish_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    index_data = {"modes": []}
+    SIM_COUNT = 1000000
+    PROB_WEIGHT = 10000000  # Konstans uint64 érték, az RGS normalizálja
+
+    print(f"Indítás: {stake_game_id} szimuláció, {SIM_COUNT} kör/mód...")
+
+    for mode in config.bet_modes:
+        mode_name = mode.name
+        gamestate.current_bet_mode = mode
         
-        @functools.wraps(original_get_moments)
-        def patched_get_moments(dist, *args, **kwargs):
-            return original_get_moments(dist)
-            
-        wc.get_distribution_moments = patched_get_moments
-    except (ImportError, AttributeError):
-        pass
+        logic_filename = f"books_{mode_name}.jsonl.zst"
+        csv_filename = f"lookUpTable_{mode_name}_0.csv"
+        
+        logic_path = output_dir / logic_filename
+        csv_path = output_dir / csv_filename
+        
+        print(f"[{mode_name.upper()}] Fájlok generálása folyamatban...")
+        
+        cctx = zstd.ZstdCompressor(level=3)
+        with open(logic_path, "wb") as f_logic, open(csv_path, "w", encoding="utf-8") as f_csv:
+            with cctx.stream_writer(f_logic) as writer:
+                for sim in range(SIM_COUNT):
+                    round_data = gamestate.run_spin(sim)
+                    
+                    json_str = json.dumps(round_data, separators=(',', ':')) + "\n"
+                    writer.write(json_str.encode('utf-8'))
+                    
+                    f_csv.write(f"{round_data['id']},{PROB_WEIGHT},{round_data['payoutMultiplier']}\n")
+        
+        index_data["modes"].append({
+            "name": mode_name,
+            "cost": float(mode.cost),
+            "events": logic_filename,
+            "weights": csv_filename
+        })
+        
+    with open(output_dir / "index.json", "w", encoding="utf-8") as f_index:
+        json.dump(index_data, f_index, indent=4)
+        
+    print(f"\nSikeres generálás! A Stake Engine fájlok helye:\n{output_dir}")
 
 if __name__ == "__main__":
-    apply_sdk_patches()
-
-    # KONFIGURÁCIÓS VÁLTOZÓK DEFINIÁLÁSA
-    num_threads = 8          # 8 magra állítva a gyorsabb futásért
-    batching_size = 250000   # 4 batch-ben fog lefutni módonként
-    compression = True
-    profiling = False
-
-    # Pontosan 1.000.000 mintaszám a PREDETERMINÁLT MÁTRIX (Excel) miatt!
-    num_sim_args = {
-        "base": 1000000,
-        "armor": 1000000,
-        "magnet": 1000000,
-        "extreme": 1000000,
-    }
-    
-    # A game_id megfelel a provider_gameName_rtp formátumnak
-    game_id = "stake_western_95"
-    config = GameConfig(game_id)
-    gamestate = GameState(config)
-
-    print(f"Starting simulation for {game_id} with 1 MILLION samples per mode...")
-    
-    # Könyvgenerálás a definiált változókkal
-    create_books(
-        gamestate,
-        config,
-        num_sim_args,
-        batching_size,
-        num_threads,
-        compression,
-        profiling,
-    )
-
-    # Konfigurációs fájlok generálása a frontend/backend számára
-    print("Generating math and event configurations...")
-    generate_configs(gamestate)
-    print("Done.")
+    generate_math_files()

@@ -3,7 +3,7 @@ import { get } from 'svelte/store';
 import type { DuelResponse, GameStatus, RgsEvent } from '../types/rgs-schema';
 
 export class StakeClient {
-    private readonly BASE_URL = 'http://localhost:8000';
+    private readonly BASE_URL = 'http://localhost:3306';
 
     private handleError(message: string) {
         console.error(`[StakeClient Hiba]: ${message}`);
